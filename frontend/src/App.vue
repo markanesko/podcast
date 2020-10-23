@@ -1,28 +1,68 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div class="container">
+
+    <h1> Simple podcast 
+      <span class="pull-right">
+        <player :track="selectedTrack"/>
+      </span>
+    </h1>
+
+    <div class="row">
+      <feedslist :feeds="feeds" :selected-feed-title="selectedFeed.title" @on-feed-seleted="feedSelected"/>
+      <feedview :feed="selectedFeed" :selected-track="selectedTrack" @on-track-select="trackSelected"/>
+      
+    </div>
+
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import { parseURL } from 'rss-parser'
+
+import feedslist from '@/components/feedslist.vue'
+import feedview from '@/components/feedview.vue'
+import player from '@/components/player.vue'
 
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
+  components: { feedslist, feedview, player },
+
+  data() {
+    return {
+      feeds: {},
+      selectedFeed: {},
+      selectedTrack: "",
+    }
+  },
+
+  methods: {
+    feedSelect (name) {
+      if (!this.feeds[name]) this.selectedFeed = {}
+      this.selectedFeed = this.feeds[name]
+    },
+    
+    trackSelected (url) {
+      if (!url) this.selectedTrack = ""
+      this.selectedTrack = url
+    },
+
+  },
+
+  mounted() {
+    fetch("/static/feeds.json")
+      .then(res => res.json() )
+      .then(res => {
+        if (res.length) {
+          res.forEach( feed => {
+            parseURL(feed, (err, data) => {
+              if (err) console.error(err)
+              this.$set(this.feeds, data.feed.title, data.feed)
+            })
+          })
+        } else {
+          alert("No podcast urls found")
+        }
+      })
   }
+  
 }
 </script>
-
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
